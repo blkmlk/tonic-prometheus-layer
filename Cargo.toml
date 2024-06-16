@@ -2,6 +2,13 @@
 name = "tonic_prometheus_layer"
 version = "0.1.0"
 edition = "2021"
+homepage = "https://github.com/blkmlk/tonic-prometheus-layer"
+license = "MIT"
+description = "Tonic-compatible Tower Layer for Prometheus Metrics"
+keywords = ["tonic", "prometheus", "layer", "middleware", "metrics"]
+categories = ["web-programming", "network-programming", "asynchronous", "development-tools::profiling"]
+repository = "https://github.com/blkmlk/tonic-prometheus-layer"
+readme = "README.md"
 
 [dependencies]
 tonic = "0.11.0"
