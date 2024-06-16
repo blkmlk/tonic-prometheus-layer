@@ -9,6 +9,7 @@ use std::str::FromStr;
 use rocket::{get, routes};
 use rocket::http::Status;
 use rocket::response::content::RawText;
+use rocket::config::Shutdown;
 use rocket::response::status::Custom;
 use tonic_prometheus_layer::metrics::GlobalSettings;
 
@@ -56,6 +57,10 @@ pub async fn run_http_server(addr: &str) {
     let config = rocket::config::Config {
         address: addr.ip(),
         port: addr.port(),
+        shutdown: Shutdown {
+            ctrlc: false,
+            ..Default::default()
+        },
         ..rocket::config::Config::release_default()
     };
 
