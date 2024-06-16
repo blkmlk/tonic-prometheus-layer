@@ -25,9 +25,7 @@ impl<S> Layer<S> for MetricsLayer {
     type Service = MetricsService<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        MetricsService {
-            service: inner,
-        }
+        MetricsService { service: inner }
     }
 }
 
@@ -37,7 +35,9 @@ pub struct MetricsService<S> {
 }
 
 impl<S> Service<request::Request<transport::Body>> for MetricsService<S>
-    where S: Service<request::Request<transport::Body>> {
+where
+    S: Service<request::Request<transport::Body>>,
+{
     type Response = S::Response;
     type Error = S::Error;
     type Future = MetricsFuture<S::Future>;
@@ -66,12 +66,19 @@ pub struct MetricsFuture<F> {
 
 impl<F> MetricsFuture<F> {
     pub fn new(method: String, path: String, inner: F) -> Self {
-        Self { started_at: None, inner, method, path }
+        Self {
+            started_at: None,
+            inner,
+            method,
+            path,
+        }
     }
 }
 
 impl<F, T, E> Future for MetricsFuture<F>
-    where F: Future<Output=Result<T, E>> {
+where
+    F: Future<Output = Result<T, E>>,
+{
     type Output = F::Output;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -86,7 +93,9 @@ impl<F, T, E> Future for MetricsFuture<F>
         if let Poll::Ready(v) = this.inner.poll(cx) {
             let elapsed = Instant::now().duration_since(*started_at).as_secs_f64();
             COUNTER.with_label_values(&[this.method, this.path]).inc();
-            HISTOGRAM.with_label_values(&[this.method, this.path]).observe(elapsed);
+            HISTOGRAM
+                .with_label_values(&[this.method, this.path])
+                .observe(elapsed);
             GAUGE.with_label_values(&[this.method, this.path]).dec();
 
             Poll::Ready(v)

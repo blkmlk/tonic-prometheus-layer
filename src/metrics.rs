@@ -1,21 +1,35 @@
 use once_cell::sync::{Lazy, OnceCell};
-use prometheus::{CounterVec, GaugeVec, histogram_opts, HistogramVec, opts, register_counter_vec_with_registry, register_gauge_vec_with_registry, register_histogram_vec_with_registry, TextEncoder};
+use prometheus::{
+    histogram_opts, opts, register_counter_vec_with_registry, register_gauge_vec_with_registry,
+    register_histogram_vec_with_registry, CounterVec, GaugeVec, HistogramVec, TextEncoder,
+};
 
 static GLOBAL_SETTINGS: OnceCell<GlobalSettings> = OnceCell::new();
 
 pub(crate) static COUNTER: Lazy<CounterVec> = Lazy::new(|| {
     let opts = opts!(COUNTER_NAME, COUNTER_DESCRIPTION);
-    register_counter_vec_with_registry!(opts, &["method", "path"], get_settings().registry.clone()).expect("failed to init counter")
+    register_counter_vec_with_registry!(opts, &["method", "path"], get_settings().registry.clone())
+        .expect("failed to init counter")
 });
 
 pub(crate) static HISTOGRAM: Lazy<HistogramVec> = Lazy::new(|| {
-    let opts = histogram_opts!(HISTOGRAM_NAME, HISTOGRAM_DESCRIPTION, get_settings().histogram_buckets.clone());
-    register_histogram_vec_with_registry!(opts, &["method", "path"], get_settings().registry.clone()).expect("failed to init histogram")
+    let opts = histogram_opts!(
+        HISTOGRAM_NAME,
+        HISTOGRAM_DESCRIPTION,
+        get_settings().histogram_buckets.clone()
+    );
+    register_histogram_vec_with_registry!(
+        opts,
+        &["method", "path"],
+        get_settings().registry.clone()
+    )
+    .expect("failed to init histogram")
 });
 
 pub(crate) static GAUGE: Lazy<GaugeVec> = Lazy::new(|| {
     let opts = opts!(GAUGE_NAME, GAUGE_DESCRIPTION);
-    register_gauge_vec_with_registry!(opts, &["method", "path"], get_settings().registry.clone()).expect("failed to init gauge")
+    register_gauge_vec_with_registry!(opts, &["method", "path"], get_settings().registry.clone())
+        .expect("failed to init gauge")
 });
 
 const COUNTER_NAME: &str = "function_calls_total";
@@ -35,7 +49,9 @@ pub(crate) fn get_settings() -> &'static GlobalSettings {
 }
 
 pub fn try_init_settings(settings: GlobalSettings) -> Result<(), Error> {
-    GLOBAL_SETTINGS.try_insert(settings).map_err(|_| Error::AlreadyInitialized)?;
+    GLOBAL_SETTINGS
+        .try_insert(settings)
+        .map_err(|_| Error::AlreadyInitialized)?;
 
     Ok(())
 }
@@ -44,6 +60,8 @@ pub fn try_init_settings(settings: GlobalSettings) -> Result<(), Error> {
 pub enum Error {
     #[error("Settings have already been initialized")]
     AlreadyInitialized,
+    #[error(transparent)]
+    PrometheusEncoding(#[from] prometheus::Error),
 }
 
 pub struct GlobalSettings {
@@ -61,15 +79,17 @@ impl Default for GlobalSettings {
 }
 
 impl GlobalSettings {
-    fn encode_metrics(&self) -> Result<String, prometheus::Error> {
+    fn encode_metrics(&self) -> Result<String, Error> {
         let mut output = String::new();
 
-        TextEncoder::new().encode_utf8(&self.registry.gather(), &mut output)?;
+        TextEncoder::new()
+            .encode_utf8(&self.registry.gather(), &mut output)
+            .map_err(Error::PrometheusEncoding)?;
 
         Ok(output)
     }
 }
 
-pub fn encode_to_string() -> Result<String, prometheus::Error> {
+pub fn encode_to_string() -> Result<String, Error> {
     get_settings().encode_metrics()
 }
