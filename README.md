@@ -1,8 +1,16 @@
 # Tonic Prometheus Layer
-Simple Prometheus metrics layer for Tonic gRPC Server inspired by [autometrics](https://github.com/autometrics-dev/autometrics-rs)
+A lightweight Prometheus metrics layer for Tonic gRPC Server inspired by [autometrics](https://github.com/autometrics-dev/autometrics-rs)
 
-## Example
-```rust
+## Usage
+
+Add `tonic_prometheus_layer` to your `Cargo.toml`.
+```not_rust
+[dependencies]
+tonic_prometheus_layer = "0.1.3"
+```
+
+Then add a new layer to your tonic instance like:
+```rust,no_run
 use std::net::SocketAddr;
 use std::str::FromStr;
 

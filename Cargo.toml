@@ -1,6 +1,6 @@
 [package]
 name = "tonic_prometheus_layer"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 homepage = "https://github.com/blkmlk/tonic-prometheus-layer"
 license = "MIT"
