@@ -11,7 +11,7 @@
 //! tonic_prometheus_layer = "0.1.3"
 //! ```
 //!
-//! Then add a new layer to your tonic instance like:
+//! Then add a new layer to your tonic instance:
 //! ```rust,no_run
 //! use std::net::SocketAddr;
 //! use std::str::FromStr;

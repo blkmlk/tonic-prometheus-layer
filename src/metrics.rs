@@ -48,6 +48,9 @@ pub(crate) fn get_settings() -> &'static GlobalSettings {
     GLOBAL_SETTINGS.get_or_init(Default::default)
 }
 
+/// Initialize the global Prometheus settings.
+///
+/// You should not call this function if you want to use default settings.
 pub fn try_init_settings(settings: GlobalSettings) -> Result<(), Error> {
     GLOBAL_SETTINGS
         .try_insert(settings)
@@ -90,6 +93,7 @@ impl GlobalSettings {
     }
 }
 
+/// Export the collected metrics to the Prometheus format.
 pub fn encode_to_string() -> Result<String, Error> {
     get_settings().encode_metrics()
 }
