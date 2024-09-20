@@ -3,12 +3,17 @@
 //! # Tonic Prometheus Layer
 //! A lightweight Prometheus metrics layer for Tonic gRPC Server
 //!
+//! It provides the following metrics:
+//! * **Counter** for tracking the total number of function calls
+//! * **Histogram** for tracking function call duration
+//! * **Gauge** for tracking the number of concurrent function calls
+//!
 //! ## Usage
 //!
 //! Add `tonic_prometheus_layer` to your `Cargo.toml`.
 //! ```not_rust
 //! [dependencies]
-//! tonic_prometheus_layer = "0.1.3"
+//! tonic_prometheus_layer = "0.1.6"
 //! ```
 //!
 //! Then add a new layer to your tonic instance:
