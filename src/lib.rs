@@ -118,9 +118,9 @@ pub struct MetricsService<S> {
     service: S,
 }
 
-impl<S> Service<request::Request<transport::Body>> for MetricsService<S>
+impl<S, B> Service<request::Request<B>> for MetricsService<S>
 where
-    S: Service<request::Request<transport::Body>>,
+    S: Service<request::Request<B>>,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -130,7 +130,7 @@ where
         self.service.poll_ready(cx)
     }
 
-    fn call(&mut self, req: request::Request<transport::Body>) -> Self::Future {
+    fn call(&mut self, req: request::Request<B>) -> Self::Future {
         let method = req.method().to_string();
         let path = req.uri().path().to_owned();
         let f = self.service.call(req);
