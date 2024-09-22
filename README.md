@@ -2,9 +2,13 @@
 A lightweight Prometheus metrics layer for Tonic gRPC Server inspired by [autometrics](https://github.com/autometrics-dev/autometrics-rs)
 
 It provides the following metrics:
-* **Counter** for tracking the total number of function calls
-* **Histogram** for tracking function call duration
-* **Gauge** for tracking the number of concurrent function calls
+* `grpc_server_handled_total`: a **Counter** for tracking the total number of
+  completed gRPC calls.
+* `grpc_server_started_total`: a **Counter** for tracking the total number of
+  gRPC calls started. The difference between this and
+  `grpc_server_handled_total` equals the number of ongoing requests.
+* `grpc_server_handling_seconds`: a **Histogram** for tracking gRPC call
+  duration.
 
 ## Usage
 
