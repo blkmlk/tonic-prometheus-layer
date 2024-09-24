@@ -6,15 +6,40 @@ use prometheus::{
 
 static GLOBAL_SETTINGS: OnceCell<GlobalSettings> = OnceCell::new();
 
-pub(crate) static COUNTER: Lazy<CounterVec> = Lazy::new(|| {
-    let opts = opts!(COUNTER_NAME, COUNTER_DESCRIPTION);
+// *_MP: Broken out by HTTP method and path.
+// These are the crate's original metrics and arguably not as usefel at _SM(C).
+// *_SM: Broken out by gRPC service name and method name.
+// *_SMC: Broken out by gRPC service name, method name, and result status code.
+
+pub(crate) static COUNTER_MP: Lazy<CounterVec> = Lazy::new(|| {
+    let opts = opts!(COUNTER_MP_NAME, COUNTER_DESCRIPTION);
     register_counter_vec_with_registry!(opts, &["method", "path"], get_settings().registry.clone())
-        .expect("failed to init counter")
+        .expect("failed to init counter_mp")
 });
 
-pub(crate) static HISTOGRAM: Lazy<HistogramVec> = Lazy::new(|| {
+pub(crate) static COUNTER_SM: Lazy<CounterVec> = Lazy::new(|| {
+    let opts = opts!(COUNTER_SM_NAME, COUNTER_STARTED_DESCRIPTION);
+    register_counter_vec_with_registry!(
+        opts,
+        &["grpc_service", "grpc_method"],
+        get_settings().registry.clone()
+    )
+    .expect("failed to init counter_smc")
+});
+
+pub(crate) static COUNTER_SMC: Lazy<CounterVec> = Lazy::new(|| {
+    let opts = opts!(COUNTER_SMC_NAME, COUNTER_DESCRIPTION);
+    register_counter_vec_with_registry!(
+        opts,
+        &["grpc_service", "grpc_method", "grpc_code"],
+        get_settings().registry.clone()
+    )
+    .expect("failed to init counter_smc")
+});
+
+pub(crate) static HISTOGRAM_MP: Lazy<HistogramVec> = Lazy::new(|| {
     let opts = histogram_opts!(
-        HISTOGRAM_NAME,
+        HISTOGRAM_MP_NAME,
         HISTOGRAM_DESCRIPTION,
         get_settings().histogram_buckets.clone()
     );
@@ -23,20 +48,43 @@ pub(crate) static HISTOGRAM: Lazy<HistogramVec> = Lazy::new(|| {
         &["method", "path"],
         get_settings().registry.clone()
     )
-    .expect("failed to init histogram")
+    .expect("failed to init histogram_mp")
 });
 
-pub(crate) static GAUGE: Lazy<GaugeVec> = Lazy::new(|| {
-    let opts = opts!(GAUGE_NAME, GAUGE_DESCRIPTION);
+pub(crate) static HISTOGRAM_SMC: Lazy<HistogramVec> = Lazy::new(|| {
+    let opts = histogram_opts!(
+        HISTOGRAM_SMC_NAME,
+        HISTOGRAM_DESCRIPTION,
+        get_settings().histogram_buckets.clone()
+    );
+    register_histogram_vec_with_registry!(
+        opts,
+        &["grpc_service", "grpc_method", "grpc_code"],
+        get_settings().registry.clone()
+    )
+    .expect("failed to init histogram_smc")
+});
+
+pub(crate) static GAUGE_MP: Lazy<GaugeVec> = Lazy::new(|| {
+    let opts = opts!(GAUGE_MP_NAME, GAUGE_DESCRIPTION);
     register_gauge_vec_with_registry!(opts, &["method", "path"], get_settings().registry.clone())
         .expect("failed to init gauge")
 });
 
-const COUNTER_NAME: &str = "function_calls_total";
-const HISTOGRAM_NAME: &str = "function_calls_duration_seconds";
-const GAUGE_NAME: &str = "function_calls_concurrent";
+// Backward compatibility metrics
+const COUNTER_MP_NAME: &str = "function_calls_total";
+const HISTOGRAM_MP_NAME: &str = "function_calls_duration_seconds";
+const GAUGE_MP_NAME: &str = "function_calls_concurrent";
 
-const COUNTER_DESCRIPTION: &str = "Counter for tracking function calls";
+// Metrics that mirror the ones commonly used in Go:
+// https://github.com/grpc-ecosystem/go-grpc-middleware/blob/main/providers/prometheus/server_metrics.go
+const COUNTER_SM_NAME: &str = "grpc_server_started_total";
+const COUNTER_SMC_NAME: &str = "grpc_server_handled_total";
+const HISTOGRAM_SMC_NAME: &str = "grpc_server_handling_seconds";
+
+const COUNTER_STARTED_DESCRIPTION: &str = "Total number of RPCs started on the server.";
+const COUNTER_DESCRIPTION: &str =
+    "Total number of RPCs completed on the server, regardless of success or failure.";
 const HISTOGRAM_DESCRIPTION: &str = "Histogram for tracking function call duration";
 const GAUGE_DESCRIPTION: &str = "Gauge for tracking concurrent function calls";
 

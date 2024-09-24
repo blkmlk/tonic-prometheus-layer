@@ -88,16 +88,18 @@
 //! ```
 //!
 use std::future::Future;
+use std::num::NonZeroUsize;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::time::Instant;
 
 use pin_project::pin_project;
-use tonic::codegen::http::request;
-use tonic::transport;
+use tonic::codegen::http::{request, response};
+use tonic::Code;
 use tower::{Layer, Service};
 
-use crate::metrics::{COUNTER, GAUGE, HISTOGRAM};
+use crate::metrics::{COUNTER_MP, GAUGE_MP, HISTOGRAM_MP};
+use crate::metrics::{COUNTER_SM, COUNTER_SMC, HISTOGRAM_SMC};
 
 pub mod metrics;
 
@@ -123,9 +125,9 @@ pub struct MetricsService<S> {
     service: S,
 }
 
-impl<S, B> Service<request::Request<B>> for MetricsService<S>
+impl<S, B, C> Service<request::Request<B>> for MetricsService<S>
 where
-    S: Service<request::Request<B>>,
+    S: Service<request::Request<B>, Response = response::Response<C>>,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -138,9 +140,15 @@ where
     fn call(&mut self, req: request::Request<B>) -> Self::Future {
         let method = req.method().to_string();
         let path = req.uri().path().to_owned();
+        let service_method_separator: Option<NonZeroUsize> = match path.chars().next() {
+            Some(first_char) if first_char == '/' => path[1..]
+                .find('/')
+                .map(|p| NonZeroUsize::new(p + 1).unwrap()),
+            _ => None,
+        };
         let f = self.service.call(req);
 
-        MetricsFuture::new(method, path, f)
+        MetricsFuture::new(method, path, service_method_separator, f)
     }
 }
 
@@ -148,44 +156,78 @@ where
 pub struct MetricsFuture<F> {
     method: String,
     path: String,
+    service_method_separator: Option<NonZeroUsize>,
     started_at: Option<Instant>,
     #[pin]
     inner: F,
 }
 
 impl<F> MetricsFuture<F> {
-    pub fn new(method: String, path: String, inner: F) -> Self {
+    pub fn new(
+        method: String,
+        path: String,
+        service_method_separator: Option<NonZeroUsize>,
+        inner: F,
+    ) -> Self {
         Self {
             started_at: None,
             inner,
             method,
             path,
+            service_method_separator,
         }
     }
 }
 
-impl<F, T, E> Future for MetricsFuture<F>
+impl<F, B, E> Future for MetricsFuture<F>
 where
-    F: Future<Output = Result<T, E>>,
+    F: Future<Output = Result<response::Response<B>, E>>,
 {
     type Output = F::Output;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
 
+        let (rpc_service, rpc_method) = match this.service_method_separator {
+            Some(sep) => (
+                &this.path[1..(*sep).into()],
+                &this.path[usize::from(*sep) + 1..],
+            ),
+            // If unparseable, say service is empty and method is the entire path
+            None => ("", this.path as &str),
+        };
+
         let started_at = this.started_at.get_or_insert_with(|| {
-            GAUGE.with_label_values(&[this.method, this.path]).inc();
+            GAUGE_MP.with_label_values(&[this.method, this.path]).inc();
+            COUNTER_SM
+                .with_label_values(&[rpc_service, rpc_method])
+                .inc();
 
             Instant::now()
         });
 
         if let Poll::Ready(v) = this.inner.poll(cx) {
+            let code = v.as_ref().map_or(Code::Unknown, |resp| {
+                resp.headers()
+                    .get("grpc-status")
+                    .map(|s| Code::from_bytes(s.as_bytes()))
+                    .unwrap_or(Code::Ok)
+            });
+            let code_str = format!("{:?}", code);
             let elapsed = Instant::now().duration_since(*started_at).as_secs_f64();
-            COUNTER.with_label_values(&[this.method, this.path]).inc();
-            HISTOGRAM
+            COUNTER_MP
+                .with_label_values(&[this.method, this.path])
+                .inc();
+            COUNTER_SMC
+                .with_label_values(&[rpc_service, rpc_method, &code_str])
+                .inc();
+            HISTOGRAM_MP
                 .with_label_values(&[this.method, this.path])
                 .observe(elapsed);
-            GAUGE.with_label_values(&[this.method, this.path]).dec();
+            HISTOGRAM_SMC
+                .with_label_values(&[rpc_service, rpc_method, &code_str])
+                .observe(elapsed);
+            GAUGE_MP.with_label_values(&[this.method, this.path]).dec();
 
             Poll::Ready(v)
         } else {
