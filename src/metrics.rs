@@ -24,7 +24,7 @@ pub(crate) static COUNTER_SM: Lazy<CounterVec> = Lazy::new(|| {
         &["grpc_service", "grpc_method"],
         get_settings().registry.clone()
     )
-    .expect("failed to init counter_smc")
+    .expect("failed to init counter_sm")
 });
 
 pub(crate) static COUNTER_SMC: Lazy<CounterVec> = Lazy::new(|| {

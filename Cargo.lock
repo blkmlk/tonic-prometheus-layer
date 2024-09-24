@@ -803,7 +803,7 @@ dependencies = [
 
 [[package]]
 name = "tonic_prometheus_layer"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "log",
  "once_cell",
