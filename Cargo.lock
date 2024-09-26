@@ -402,12 +402,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "log"
-version = "0.4.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90ed8c1e510134f979dbc4f070f87d4313098b704861a105fe34231c70a3901c"
-
-[[package]]
 name = "matchit"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -803,9 +797,8 @@ dependencies = [
 
 [[package]]
 name = "tonic_prometheus_layer"
-version = "0.1.7"
+version = "0.1.9"
 dependencies = [
- "log",
  "once_cell",
  "pin-project",
  "prometheus",

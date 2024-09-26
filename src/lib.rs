@@ -14,7 +14,7 @@
 //! Add `tonic_prometheus_layer` to your `Cargo.toml`.
 //! ```not_rust
 //! [dependencies]
-//! tonic_prometheus_layer = "0.1.6"
+//! tonic_prometheus_layer = "0.1.9"
 //! ```
 //!
 //! Then add a new layer to your tonic instance:
