@@ -18,7 +18,7 @@
 //! Add `tonic_prometheus_layer` to your `Cargo.toml`.
 //! ```not_rust
 //! [dependencies]
-//! tonic_prometheus_layer = "0.1.9"
+//! tonic_prometheus_layer = "0.1.10"
 //! ```
 //!
 //! ## Server Instrumentation

@@ -1,34 +1,30 @@
-# Tonic Prometheus Layer
-A lightweight Prometheus metrics layer for Tonic gRPC Server inspired by [autometrics](https://github.com/autometrics-dev/autometrics-rs)
+
+
+## Tonic Prometheus Layer
+A lightweight Prometheus metrics layer for Tonic gRPC client and server
 
 It provides the following metrics:
-* `grpc_server_handled_total`: a **Counter** for tracking the total number of
-  completed gRPC server calls.
-* `grpc_server_started_total`: a **Counter** for tracking the total number of
-  gRPC server calls started. The difference between this and
-  `grpc_server_handled_total` equals the number of ongoing server requests.
-* `grpc_server_handling_seconds`: a **Histogram** for tracking gRPC server call
-  duration.
-* `grpc_client_handled_total`: a **Counter** for tracking the total number of
-  completed gRPC client calls.
-* `grpc_client_started_total`: a **Counter** for tracking the total number of
-  gRPC client calls started. The difference between this and
-  `grpc_client_handled_total` equals the number of ongoing client requests.
-* `grpc_client_handling_seconds`: a **Histogram** for tracking gRPC client call
-  duration.
+* `grpc_server_handled_total`: a **Counter** for tracking the total number of completed gRPC server calls.
+* `grpc_server_started_total`: a **Counter** for tracking the total number of gRPC server calls started.
+   The difference between this and `grpc_server_handled_total` equals the number of ongoing server requests.
+* `grpc_server_handling_seconds`: a **Histogram** for tracking gRPC server call duration.
+* `grpc_client_handled_total`: a **Counter** for tracking the total number of completed gRPC client calls.
+* `grpc_client_started_total`: a **Counter** for tracking the total number of gRPC client calls started.
+   The difference between this and `grpc_client_handled_total` equals the number of ongoing client requests.
+* `grpc_client_handling_seconds`: a **Histogram** for tracking gRPC client call duration.
 
-## Usage
+### Usage
 
 Add `tonic_prometheus_layer` to your `Cargo.toml`.
 ```not_rust
 [dependencies]
-tonic_prometheus_layer = "0.1.9"
+tonic_prometheus_layer = "0.1.10"
 ```
 
-## Server Instrumentation
+### Server Instrumentation
 
-Add a new layer to your tonic instance like:
-```rust,no_run
+Add a new layer to your tonic instance:
+```rust
 use std::net::SocketAddr;
 use std::str::FromStr;
 
@@ -98,11 +94,11 @@ pub async fn run_http_server(addr: &str) {
 }
 ```
 
-## Client Instrumentation
+### Client Instrumentation
 
 Wrap each individual tonic client Channel object:
 
-```
+```rust
 #[tokio::main]
 async fn main() {
     let channel = tonic::transport::Channel::from_static("http://localhost")
