@@ -6,6 +6,8 @@ use prometheus::{
 
 static GLOBAL_SETTINGS: OnceCell<GlobalSettings> = OnceCell::new();
 
+// gRPC server metrics
+
 // *_MP: Broken out by HTTP method and path.
 // These are the crate's original metrics and arguably not as usefel at _SM(C).
 // *_SM: Broken out by gRPC service name and method name.
@@ -85,8 +87,61 @@ const HISTOGRAM_SMC_NAME: &str = "grpc_server_handling_seconds";
 const COUNTER_STARTED_DESCRIPTION: &str = "Total number of RPCs started on the server.";
 const COUNTER_DESCRIPTION: &str =
     "Total number of RPCs completed on the server, regardless of success or failure.";
-const HISTOGRAM_DESCRIPTION: &str = "Histogram for tracking function call duration";
+const HISTOGRAM_DESCRIPTION: &str = "Histogram for tracking server RPC duration";
 const GAUGE_DESCRIPTION: &str = "Gauge for tracking concurrent function calls";
+
+// gRPC client metrics
+
+pub(crate) static CLIENT_COUNTER_STARTED: Lazy<CounterVec> = Lazy::new(|| {
+    let opts = opts!(
+        CLIENT_COUNTER_STARTED_NAME,
+        CLIENT_COUNTER_STARTED_DESCRIPTION
+    );
+    register_counter_vec_with_registry!(
+        opts,
+        &["grpc_service", "grpc_method"],
+        get_settings().registry.clone()
+    )
+    .expect("failed to init client_counter_started")
+});
+
+pub(crate) static CLIENT_COUNTER_HANDLED: Lazy<CounterVec> = Lazy::new(|| {
+    let opts = opts!(
+        CLIENT_COUNTER_HANDLED_NAME,
+        CLIENT_COUNTER_HANDLED_DESCRIPTION
+    );
+    register_counter_vec_with_registry!(
+        opts,
+        &["grpc_service", "grpc_method", "grpc_code"],
+        get_settings().registry.clone()
+    )
+    .expect("failed to init client_counter_handled")
+});
+
+pub(crate) static CLIENT_HISTOGRAM: Lazy<HistogramVec> = Lazy::new(|| {
+    let opts = histogram_opts!(
+        CLIENT_HISTOGRAM_NAME,
+        CLIENT_HISTOGRAM_DESCRIPTION,
+        get_settings().histogram_buckets.clone()
+    );
+    register_histogram_vec_with_registry!(
+        opts,
+        &["grpc_service", "grpc_method", "grpc_code"],
+        get_settings().registry.clone()
+    )
+    .expect("failed to init client_histogram")
+});
+
+// Metrics that mirror the ones commonly used in Go:
+// https://github.com/grpc-ecosystem/go-grpc-middleware/blob/main/providers/prometheus/client_metrics.go
+const CLIENT_COUNTER_STARTED_NAME: &str = "grpc_client_started_total";
+const CLIENT_COUNTER_HANDLED_NAME: &str = "grpc_client_handled_total";
+const CLIENT_HISTOGRAM_NAME: &str = "grpc_client_handling_seconds";
+
+const CLIENT_COUNTER_STARTED_DESCRIPTION: &str = "Total number of client RPCs started.";
+const CLIENT_COUNTER_HANDLED_DESCRIPTION: &str =
+    "Total number of client RPCs completed, regardless of success or failure.";
+const CLIENT_HISTOGRAM_DESCRIPTION: &str = "Histogram for tracking client RPC duration";
 
 const DEFAULT_HISTOGRAM_BUCKETS: [f64; 14] = [
     0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0,

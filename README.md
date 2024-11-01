@@ -3,11 +3,18 @@ A lightweight Prometheus metrics layer for Tonic gRPC Server inspired by [autome
 
 It provides the following metrics:
 * `grpc_server_handled_total`: a **Counter** for tracking the total number of
-  completed gRPC calls.
+  completed gRPC server calls.
 * `grpc_server_started_total`: a **Counter** for tracking the total number of
-  gRPC calls started. The difference between this and
-  `grpc_server_handled_total` equals the number of ongoing requests.
-* `grpc_server_handling_seconds`: a **Histogram** for tracking gRPC call
+  gRPC server calls started. The difference between this and
+  `grpc_server_handled_total` equals the number of ongoing server requests.
+* `grpc_server_handling_seconds`: a **Histogram** for tracking gRPC server call
+  duration.
+* `grpc_client_handled_total`: a **Counter** for tracking the total number of
+  completed gRPC client calls.
+* `grpc_client_started_total`: a **Counter** for tracking the total number of
+  gRPC client calls started. The difference between this and
+  `grpc_client_handled_total` equals the number of ongoing client requests.
+* `grpc_client_handling_seconds`: a **Histogram** for tracking gRPC client call
   duration.
 
 ## Usage
@@ -18,7 +25,9 @@ Add `tonic_prometheus_layer` to your `Cargo.toml`.
 tonic_prometheus_layer = "0.1.9"
 ```
 
-Then add a new layer to your tonic instance like:
+## Server Instrumentation
+
+Add a new layer to your tonic instance like:
 ```rust,no_run
 use std::net::SocketAddr;
 use std::str::FromStr;
@@ -86,5 +95,21 @@ pub async fn run_http_server(addr: &str) {
         .launch()
         .await
         .unwrap();
+}
+```
+
+## Client Instrumentation
+
+Wrap each individual tonic client Channel object:
+
+```
+#[tokio::main]
+async fn main() {
+    let channel = tonic::transport::Channel::from_static("http://localhost")
+        .connect()
+        .await
+        .unwrap();
+    let channel = tonic_prometheus_layer::MetricsChannel::new(channel);
+    let mut client = tonic_health::pb::health_client::HealthClient::new(channel);
 }
 ```
