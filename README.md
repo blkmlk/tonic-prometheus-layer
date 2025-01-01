@@ -18,7 +18,7 @@ It provides the following metrics:
 Add `tonic_prometheus_layer` to your `Cargo.toml`.
 ```not_rust
 [dependencies]
-tonic_prometheus_layer = "0.1.10"
+tonic_prometheus_layer = "0.1.11"
 ```
 
 ### Server Instrumentation
@@ -109,3 +109,5 @@ async fn main() {
     let mut client = tonic_health::pb::health_client::HealthClient::new(channel);
 }
 ```
+
+License: MIT
