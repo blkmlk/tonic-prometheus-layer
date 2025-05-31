@@ -40,7 +40,7 @@ where
 
         let started_at = this.started_at.get_or_insert_with(|| {
             CLIENT_COUNTER_STARTED
-                .with_label_values(&[this.service, this.method])
+                .with_label_values(&[this.service.as_str(), this.method.as_str()])
                 .inc();
             Instant::now()
         });
@@ -55,10 +55,18 @@ where
             let code_str = format!("{:?}", code);
             let elapsed = Instant::now().duration_since(*started_at).as_secs_f64();
             CLIENT_COUNTER_HANDLED
-                .with_label_values(&[this.service, this.method, &code_str])
+                .with_label_values(&[
+                    this.service.as_str(),
+                    this.method.as_str(),
+                    code_str.as_str(),
+                ])
                 .inc();
             CLIENT_HISTOGRAM
-                .with_label_values(&[this.service, this.method, &code_str])
+                .with_label_values(&[
+                    this.service.as_str(),
+                    this.method.as_str(),
+                    code_str.as_str(),
+                ])
                 .observe(elapsed);
             Poll::Ready(v)
         } else {
@@ -123,7 +131,7 @@ mod tests {
 
     #[tokio::test]
     async fn simple() {
-        let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+        let (health_reporter, health_service) = tonic_health::server::health_reporter();
         health_reporter
             .set_service_status("yes", tonic_health::ServingStatus::Serving)
             .await;
