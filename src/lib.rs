@@ -223,7 +223,9 @@ where
         };
 
         let started_at = this.started_at.get_or_insert_with(|| {
-            GAUGE_MP.with_label_values(&[this.method, this.path]).inc();
+            GAUGE_MP
+                .with_label_values(&[this.method.as_str(), this.path.as_str()])
+                .inc();
             COUNTER_SM
                 .with_label_values(&[rpc_service, rpc_method])
                 .inc();
@@ -241,18 +243,20 @@ where
             let code_str = format!("{:?}", code);
             let elapsed = Instant::now().duration_since(*started_at).as_secs_f64();
             COUNTER_MP
-                .with_label_values(&[this.method, this.path])
+                .with_label_values(&[this.method.as_str(), this.path.as_str()])
                 .inc();
             COUNTER_SMC
-                .with_label_values(&[rpc_service, rpc_method, &code_str])
+                .with_label_values(&[rpc_service, rpc_method, code_str.as_str()])
                 .inc();
             HISTOGRAM_MP
-                .with_label_values(&[this.method, this.path])
+                .with_label_values(&[this.method.as_str(), this.path.as_str()])
                 .observe(elapsed);
             HISTOGRAM_SMC
-                .with_label_values(&[rpc_service, rpc_method, &code_str])
+                .with_label_values(&[rpc_service, rpc_method, code_str.as_str()])
                 .observe(elapsed);
-            GAUGE_MP.with_label_values(&[this.method, this.path]).dec();
+            GAUGE_MP
+                .with_label_values(&[this.method.as_str(), this.path.as_str()])
+                .dec();
 
             Poll::Ready(v)
         } else {
