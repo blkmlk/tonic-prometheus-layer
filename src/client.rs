@@ -52,20 +52,20 @@ where
                     .map(|s| Code::from_bytes(s.as_bytes()))
                     .unwrap_or(Code::Ok)
             });
-            let code_str = format!("{:?}", code);
+            let code_str = crate::grpc_code_to_str(code);
             let elapsed = Instant::now().duration_since(*started_at).as_secs_f64();
             CLIENT_COUNTER_HANDLED
                 .with_label_values(&[
                     this.service.as_str(),
                     this.method.as_str(),
-                    code_str.as_str(),
+                    code_str,
                 ])
                 .inc();
             CLIENT_HISTOGRAM
                 .with_label_values(&[
                     this.service.as_str(),
                     this.method.as_str(),
-                    code_str.as_str(),
+                    code_str,
                 ])
                 .observe(elapsed);
             Poll::Ready(v)
@@ -157,8 +157,8 @@ mod tests {
 
         let got = crate::metrics::encode_to_string().unwrap();
         assert!(got.contains(
-            "\ngrpc_client_handled_total{grpc_code=\"NotFound\",grpc_method=\"Check\",grpc_service=\"grpc.health.v1.Health\"} 1\n"));
+            "\ngrpc_client_handled_total{grpc_code=\"NOT_FOUND\",grpc_method=\"Check\",grpc_service=\"grpc.health.v1.Health\"} 1\n"));
         assert!(got.contains(
-            "\ngrpc_client_handled_total{grpc_code=\"Ok\",grpc_method=\"Check\",grpc_service=\"grpc.health.v1.Health\"} 1\n"));
+            "\ngrpc_client_handled_total{grpc_code=\"OK\",grpc_method=\"Check\",grpc_service=\"grpc.health.v1.Health\"} 1\n"));
     }
 }
