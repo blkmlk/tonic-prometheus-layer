@@ -126,6 +126,34 @@ use crate::metrics::{COUNTER_SM, COUNTER_SMC, HISTOGRAM_SMC};
 mod client;
 pub mod metrics;
 
+/// Convert a `tonic::Code` to its canonical gRPC status code string.
+///
+/// Uses the standard uppercase/underscore names from the gRPC specification
+/// (<https://grpc.io/docs/guides/status-codes/>)
+/// (e.g. `OK`, `NOT_FOUND`, `INTERNAL`) instead of Rust Debug formatting
+/// (e.g. `Ok`, `NotFound`, `Internal`).
+fn grpc_code_to_str(code: Code) -> &'static str {
+    match code {
+        Code::Ok => "OK",
+        Code::Cancelled => "CANCELLED",
+        Code::Unknown => "UNKNOWN",
+        Code::InvalidArgument => "INVALID_ARGUMENT",
+        Code::DeadlineExceeded => "DEADLINE_EXCEEDED",
+        Code::NotFound => "NOT_FOUND",
+        Code::AlreadyExists => "ALREADY_EXISTS",
+        Code::PermissionDenied => "PERMISSION_DENIED",
+        Code::ResourceExhausted => "RESOURCE_EXHAUSTED",
+        Code::FailedPrecondition => "FAILED_PRECONDITION",
+        Code::Aborted => "ABORTED",
+        Code::OutOfRange => "OUT_OF_RANGE",
+        Code::Unimplemented => "UNIMPLEMENTED",
+        Code::Internal => "INTERNAL",
+        Code::Unavailable => "UNAVAILABLE",
+        Code::DataLoss => "DATA_LOSS",
+        Code::Unauthenticated => "UNAUTHENTICATED",
+    }
+}
+
 pub use client::MetricsChannel;
 
 #[derive(Clone, Default)]
@@ -240,19 +268,19 @@ where
                     .map(|s| Code::from_bytes(s.as_bytes()))
                     .unwrap_or(Code::Ok)
             });
-            let code_str = format!("{:?}", code);
+            let code_str = grpc_code_to_str(code);
             let elapsed = Instant::now().duration_since(*started_at).as_secs_f64();
             COUNTER_MP
                 .with_label_values(&[this.method.as_str(), this.path.as_str()])
                 .inc();
             COUNTER_SMC
-                .with_label_values(&[rpc_service, rpc_method, code_str.as_str()])
+                .with_label_values(&[rpc_service, rpc_method, code_str])
                 .inc();
             HISTOGRAM_MP
                 .with_label_values(&[this.method.as_str(), this.path.as_str()])
                 .observe(elapsed);
             HISTOGRAM_SMC
-                .with_label_values(&[rpc_service, rpc_method, code_str.as_str()])
+                .with_label_values(&[rpc_service, rpc_method, code_str])
                 .observe(elapsed);
             GAUGE_MP
                 .with_label_values(&[this.method.as_str(), this.path.as_str()])
